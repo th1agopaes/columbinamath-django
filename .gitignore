@@ -1,0 +1,20 @@
+# Ambiente virtual (cada PC cria o seu)
+.venv/
+
+# Cache do python
+__pycache__
+*.pyc
+
+# Segredos (SECRET_KEY, senhas)
+.env
+
+# Banco de dados local de desenvolvimento
+db.sqlite3
+
+# Arquivos enviados por usuários
+media/
+
+# Editor e sistema
+.vscode/
+.idea/
+*.log
