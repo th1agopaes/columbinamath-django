@@ -1,7 +1,11 @@
+from django.conf import settings  # acesso ao AUTH_USER_MODEL
 from django.contrib.auth.models import (
     AbstractUser,
     UserManager,
 )  # usuário completo do Django, feito para ser herdado
+from django.core.exceptions import (
+    ValidationError,
+)  # erro de validação oficial do Django
 from django.db import models  # tipos de campo (CharField, EmailField...)
 
 
@@ -40,3 +44,40 @@ class Usuario(AbstractUser):  # herança: ganha tudo do AbstractUser
 
     def __str__(self):  # como o objeto aparece como texto
         return self.get_full_name() or self.username  # nome completo, se vazio o login
+
+
+class PerfilAluno(models.Model):  # ficha complementar só de alunos
+    class Serie(models.IntegerChoices):  # choices numéricas (série é número)
+        PRIMEIRO = 1, "1º ano"  # (valor no banco, texto na tela)
+        SEGUNDO = 2, "2º ano"
+        TERCEIRO = 3, "3º ano"
+
+    usuario = models.OneToOneField(  # relação 1:1 (um usuário, no máximo um perfil)
+        settings.AUTH_USER_MODEL,  # aponta para o usuário oficial, sem importar a classe
+        on_delete=models.CASCADE,  # apagou o usuário, apaga o perfil junto
+        related_name="perfil_aluno",  # caminho de volta: usuario.perfil_aluno
+        limit_choices_to={"tipo": Usuario.Tipo.ALUNO},  # formulários só listam alunos
+        verbose_name="usuário",  # nome amigável no admin
+    )
+    serie = models.PositiveSmallIntegerField(  # inteiro pequeno, sem negativos
+        "série",  # nome amigável
+        choices=Serie.choices,  # só aceita 1, 2 ou 3
+    )
+
+    class Meta:
+        verbose_name = "perfil de aluno"
+        verbose_name_plural = "perfis de alunos"
+
+    def __str__(self):
+        return (
+            f"{self.usuario} - {self.get_serie_display()}"  # ex: "Ana Souza - 2º ano"
+        )
+
+    def clean(self):  # validação de regra de negócio
+        super().clean()  # mantém as validações do pai
+        if (
+            self.usuario_id and self.usuario.tipo != Usuario.Tipo.ALUNO
+        ):  # usuario_id: só o id, sem consulta extra
+            raise ValidationError(
+                "Somente usuários do tipo aluno podem ter perfil de aluno."
+            )
